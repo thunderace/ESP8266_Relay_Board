@@ -8,18 +8,18 @@
 #
 # Output directors to store intermediate compiled files
 # relative to the project directory
+include ../makedefs
+
+
 BUILD_BASE	= build
 FW_BASE		= firmware
 
 # Base directory for the compiler
-XTENSA_TOOLS_ROOT ?= /opt/Espressif/crosstool-NG/builds/xtensa-lx106-elf/bin
+#XTENSA_TOOLS_ROOT ?= /opt/Espressif/crosstool-NG/builds/xtensa-lx106-elf/bin
 
 #Extra Tensilica includes from the ESS VM
-SDK_EXTRA_INCLUDES ?= /opt/Espressif/ESP8266_SDK/include
-SDK_EXTRA_LIBS ?= /opt/xtensa-lx106-elf/lib/gcc/xtensa-lx106-elf/4.8.2/
-
-# base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= /opt/Espressif/ESP8266_SDK
+SDK_EXTRA_INCLUDES ?= $(SDK_BASE)/include
+SDK_EXTRA_LIBS ?= ${XTENSA_LIBS_ROOT}
 
 #Esptool.py path and port
 ESPTOOL		?= esptool
