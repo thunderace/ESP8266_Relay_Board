@@ -1,3 +1,12 @@
+
+fork from https://github.com/mharizanov/ESP8266_Relay_Board
+
+Changes : 
+- hardware parts removed
+- firmware moved on root
+
+
+
 #Three Channel WiFi Relay/Thermostat Board
 
 The Three Channel WiFi Relay/Thermostat Board is a WiFi connected multi-purpose relay board based on the [ESP8266 SoC].
