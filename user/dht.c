@@ -21,7 +21,7 @@
 #include "gpio.h"
 #include <stdlib.h>
 
-#include "dht22.h"
+#include "dht.h"
 
 #define MAXTIMINGS 10000
 #define DHT_MAXCOUNT 32000

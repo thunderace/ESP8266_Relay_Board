@@ -12,7 +12,6 @@
 
 #include "espmissingincludes.h"
 #include "ets_sys.h"
-//#include "lwip/timers.h"
 #include "user_interface.h"
 
 #include "httpd.h"
@@ -20,7 +19,6 @@
 #include "httpdespfs.h"
 #include "cgi.h"
 #include "cgiwifi.h"
-#include "cgithermostat.h"
 #include "stdout.h"
 #include "auth.h"
 #include "sntp.h"
@@ -28,19 +26,10 @@
 
 #include "config.h"
 
-#include "dht22.h"
+#include "dht.h"
 #include "ds18b20.h"
-#include "broadcastd.h"
-#include "thermostat.h"
 #include "wifi.h"
 #include "mqtt.h"
-//#include "netbios.h"
-
-
-//#include "pwm.h"
-//#include "cgipwm.h"
-
-//#include "oled.h"
 
 MQTT_Client mqttClient;
 
@@ -73,26 +62,21 @@ general ones. Authorization things (like authBasic) act as a 'barrier' and
 should be placed above the URLs they protect.
 */
 HttpdBuiltInUrl builtInUrls[]={
-	{"/", cgiRedirect, "/index.tpl"},
+  {"/", cgiRedirect, "/index.tpl"},
 	{"/index.tpl", cgiEspFsTemplate, tplCounter},
 	{"/about.tpl", cgiEspFsTemplate, tplCounter},
-
 	//{"/flash.bin", cgiReadFlash, NULL},
-
 	{"/config/*", authBasic, myPassFn},
 	{"/control/*", authBasic, myPassFn},
-
 	{"/control/ui.tpl", cgiEspFsTemplate, tplUI},
 	{"/control/relay.tpl", cgiEspFsTemplate, tplGPIO},
 	{"/control/relay.cgi", cgiGPIO, NULL},
-    {"/control/dht22.tpl", cgiEspFsTemplate, tplDHT},
-    {"/control/dht22.cgi", cgiDHT22, NULL}, 
-    {"/control/ds18b20.tpl", cgiEspFsTemplate, tplDS18b20},
-    {"/control/ds18b20.cgi", cgiDS18b20, NULL}, 
-    {"/control/state.cgi", cgiState, NULL}, 
-    {"/control/reset.cgi", cgiReset, NULL}, 
-    {"/control/thermostat.tpl", cgiEspFsTemplate, tplThermostat},
-    {"/control/thermostat.cgi", cgiThermostat, NULL}, 
+  {"/control/dht22.tpl", cgiEspFsTemplate, tplDHT},
+  {"/control/dht22.cgi", cgiDHT22, NULL}, 
+  {"/control/ds18b20.tpl", cgiEspFsTemplate, tplDS18b20},
+  {"/control/ds18b20.cgi", cgiDS18b20, NULL}, 
+  {"/control/state.cgi", cgiState, NULL}, 
+  {"/control/reset.cgi", cgiReset, NULL}, 
 #ifdef CGIPWM_H
 	{"/control/pwm.cgi", cgiPWM, NULL},
 #endif
@@ -106,15 +90,12 @@ HttpdBuiltInUrl builtInUrls[]={
 	{"/config/mqtt.cgi", cgiMQTT, NULL},
 	{"/config/httpd.tpl", cgiEspFsTemplate, tplHTTPD},
 	{"/config/httpd.cgi", cgiHTTPD, NULL},
-	{"/config/broadcastd.tpl", cgiEspFsTemplate, tplBroadcastD},
-	{"/config/broadcastd.cgi", cgiBroadcastD, NULL},
 	{"/config/ntp.tpl", cgiEspFsTemplate, tplNTP},
 	{"/config/ntp.cgi", cgiNTP, NULL},
 	{"/config/relay.tpl", cgiEspFsTemplate, tplRLYSettings},
 	{"/config/relay.cgi", cgiRLYSettings, NULL},
 	{"/config/sensor.tpl", cgiEspFsTemplate, tplSensorSettings},
 	{"/config/sensor.cgi", cgiSensorSettings, NULL},
-
 	
 	{"*", cgiEspFsHook, NULL}, //Catch-all cgi function for the filesystem
 	{NULL, NULL, NULL}
@@ -122,9 +103,8 @@ HttpdBuiltInUrl builtInUrls[]={
 
 
 
-void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status)
-{
-	if(status == STATION_GOT_IP){
+void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status) {
+	if(status == STATION_GOT_IP) {
 		if(sysCfg.mqtt_enable==1) {
 			MQTT_Connect(&mqttClient);
 		} else {
@@ -133,21 +113,18 @@ void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status)
 	}	
 }
 
-void ICACHE_FLASH_ATTR mqttConnectedCb(uint32_t *args)
-{
+void ICACHE_FLASH_ATTR mqttConnectedCb(uint32_t *args) {
 	MQTT_Client* client = (MQTT_Client*)args;
 	os_printf("MQTT: Connected\r\n");
-	MQTT_Subscribe(client, (char *)sysCfg.mqtt_relay_subs_topic,0);
+	MQTT_Subscribe(client, (char *)sysCfg.mqtt_relay_command_topic,0);
 }
 
-void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args)
-{
+void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args) {
 //	MQTT_Client* client = (MQTT_Client*)args;
 	os_printf("MQTT: Disconnected\r\n");
 }
-void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t lengh)
-{
 
+void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t lengh) {
 	char strTopic[topic_len + 1];
 	os_memcpy(strTopic, topic, topic_len);
 	strTopic[topic_len] = '\0';
@@ -157,9 +134,9 @@ void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint32_t to
 	strData[lengh] = '\0';
 
 	char relayNum=strTopic[topic_len-1];
-	char strSubsTopic[strlen((char *)sysCfg.mqtt_relay_subs_topic)];
-	os_strcpy(strSubsTopic,(char *)sysCfg.mqtt_relay_subs_topic);
-	strSubsTopic[(strlen((char *)sysCfg.mqtt_relay_subs_topic)-1)]=relayNum;
+	char strSubsTopic[strlen((char *)sysCfg.mqtt_relay_command_topic)];
+	os_strcpy(strSubsTopic,(char *)sysCfg.mqtt_relay_command_topic);
+	strSubsTopic[(strlen((char *)sysCfg.mqtt_relay_command_topic)-1)]=relayNum;
 
 	os_printf("MQTT strSubsTopic: %s, strTopic: %s \r\n", strSubsTopic, strTopic);
 
@@ -191,10 +168,45 @@ void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint32_t to
 	os_printf("MQTT topic: %s, data: %s \r\n", strTopic, strData);
 }
 
-void ICACHE_FLASH_ATTR mqttPublishedCb(uint32_t *args)
-{
+void ICACHE_FLASH_ATTR mqttPublishedCb(uint32_t *args) {
 //    MQTT_Client* client = (MQTT_Client*)args;
     os_printf("MQTT: Published\r\n");
+}
+
+static ETSTimer MQTTbroadcastTimer;
+static ICACHE_FLASH_ATTR void MQTTbroadcastReading(void* arg) {
+  if(sysCfg.mqtt_enable==1) {
+		//os_printf("Sending MQTT\n");
+		
+		if(sysCfg.sensor_dht22_enable) {
+			struct sensor_reading* result = readDHT();
+			if(result->success) {
+				char temp[32];
+				char topic[128];
+				int len = dht_temp_str(temp);
+				os_sprintf(topic,"%s",sysCfg.mqtt_dht22_temp_pub_topic);
+				MQTT_Publish(&mqttClient,topic,temp,len,0,0);
+				os_printf("Published \"%s\" to topic \"%s\"\n",temp,topic);
+				
+				len = dht_humi_str(temp);
+				os_sprintf(topic,"%s",sysCfg.mqtt_dht22_humi_pub_topic);
+				MQTT_Publish(&mqttClient,topic,temp,len,0,0);
+				os_printf("Published \"%s\" to topic \"%s\"\n",temp,topic);
+			}
+		}
+
+		if(sysCfg.sensor_ds18b20_enable) {
+			struct sensor_reading* result = read_ds18b20();
+			if(result->success) {
+				char temp[32];
+				char topic[128];
+				int len = ds_str(temp,0);
+				os_sprintf(topic,"%s",sysCfg.mqtt_ds18b20_temp_pub_topic);
+				MQTT_Publish(&mqttClient,topic,temp,len,0,0);
+				os_printf("Published \"%s\" to topic \"%s\"\n",temp,topic);
+			}
+		}
+  }
 }
 
 
@@ -221,49 +233,35 @@ void ICACHE_FLASH_ATTR user_init(void) {
 		MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
 		MQTT_OnPublished(&mqttClient, mqttPublishedCb);		
 		MQTT_OnData(&mqttClient, mqttDataCb);
-		
 	}
 	
-	if(sysCfg.sensor_dht22_enable) 
+  if(sysCfg.sensor_dht22_enable) { 
 		DHTInit(SENSOR_DHT22, 30000);
-		
-	if(sysCfg.sensor_ds18b20_enable) 
-		ds_init(30000);
-
-	broadcastd_init();
-
-	thermostat_init(30000);
-
-/*
-	//Netbios to set the name
-	struct softap_config wiconfig;
-	os_memset(netbios_name, ' ', sizeof(netbios_name)-1);
-	if(wifi_softap_get_config(&wiconfig)) {
-		int i;
-		for(i = 0; i < sizeof(netbios_name)-1; i++) {
-			if(wiconfig.ssid[i] < ' ') break;
-			netbios_name[i] = wiconfig.ssid[i];
-		};
+	} else {
+    if(sysCfg.sensor_dht11_enable) { 
+		  DHTInit(SENSOR_DHT11, 30000);
+	  }
 	}
-	else os_sprintf(netbios_name, "ESP8266");
-	netbios_name[sizeof(netbios_name)-1]='\0';
-	netbios_init();
-*/
 		
-	os_printf("\nRelay Board Ready\n");	
+	if(sysCfg.sensor_ds18b20_enable) {
+		ds_init(30000);
+	}
+		
+  if (sysCfg.mqtt_enable==1) {
+    os_timer_setfn(&MQTTbroadcastTimer, MQTTbroadcastReading, NULL);
+    os_printf("Arming MQTT broadcast timer\n");
+	  os_timer_arm(&MQTTbroadcastTimer, 60000, 1);  
+  }
+	os_printf("Board is Ready\n");	
 	os_printf("Free heap size:%d\n",system_get_free_heap_size());
-
 	
 #ifdef CGIPWM_H	
 	//Mind the PWM pin!! defined in pwm.h
 	duty=0;
 	pwm_init( 50, &duty);
 	pwm_set_duty(duty, 0);
-    pwm_start();
+  pwm_start();
 #endif
-	
-	//OLEDInit();
-	
 }
 
 

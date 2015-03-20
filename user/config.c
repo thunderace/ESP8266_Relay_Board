@@ -112,14 +112,18 @@ void ICACHE_FLASH_ATTR CFG_Load()
 		os_sprintf((char *)sysCfg.mqtt_user, "%s", MQTT_USER);
 		os_sprintf((char *)sysCfg.mqtt_pass, "%s", MQTT_PASS);
 		sysCfg.mqtt_use_ssl=MQTT_USE_SSL;
-		os_sprintf((char *)sysCfg.mqtt_relay_subs_topic, MQTT_RELAY_SUBS_TOPIC, system_get_chip_id());
-		os_sprintf((char *)sysCfg.mqtt_dht22_temp_pub_topic, MQTT_DHT22_TEMP_PUB_TOPIC, system_get_chip_id()); 
+		os_sprintf((char *)sysCfg.mqtt_relay_command_topic, MQTT_RELAY1_CMD, system_get_chip_id());
+  	os_sprintf((char *)sysCfg.mqtt_dht22_temp_pub_topic, MQTT_DHT22_TEMP_PUB_TOPIC, system_get_chip_id()); 
 		os_sprintf((char *)sysCfg.mqtt_dht22_humi_pub_topic, MQTT_DHT22_HUMI_PUB_TOPIC, system_get_chip_id());		
+  	os_sprintf((char *)sysCfg.mqtt_dht11_temp_pub_topic, MQTT_DHT11_TEMP_PUB_TOPIC, system_get_chip_id()); 
+		os_sprintf((char *)sysCfg.mqtt_dht11_humi_pub_topic, MQTT_DHT11_HUMI_PUB_TOPIC, system_get_chip_id());		
 		os_sprintf((char *)sysCfg.mqtt_ds18b20_temp_pub_topic, MQTT_DS18B20_TEMP_PUB_TOPIC, system_get_chip_id());
 
 		sysCfg.sensor_ds18b20_enable=SENSOR_DS18B20_ENABLE;
-		sysCfg.sensor_dht22_enable=SENSOR_DHT22_ENABLE;
+  	sysCfg.sensor_dht22_enable=SENSOR_DHT22_ENABLE;
 		sysCfg.sensor_dht22_humi_thermostat=0;
+  	sysCfg.sensor_dht11_enable=SENSOR_DHT11_ENABLE;
+		sysCfg.sensor_dht11_humi_thermostat=0;
 				
 		sysCfg.relay_latching_enable=RELAY_LATCHING_ENABLE;
 		sysCfg.relay_1_state=0;
@@ -130,121 +134,6 @@ void ICACHE_FLASH_ATTR CFG_Load()
 		os_sprintf((char *)sysCfg.relay2name, "%s", RELAY2NAME);
 		os_sprintf((char *)sysCfg.relay3name, "%s", RELAY3NAME);
 		
-		sysCfg.broadcastd_enable=BROADCASTD_ENABLE;
-		sysCfg.broadcastd_port=BROADCASTD_PORT;
-		os_sprintf((char *)sysCfg.broadcastd_host, "%s", BROADCASTD_HOST);
-		os_sprintf((char *)sysCfg.broadcastd_url, "%s", BROADCASTD_URL);
-		sysCfg.broadcastd_thingspeak_channel=BROADCASTD_THINGSPEAK_CHANNEL;
-		os_sprintf((char *)sysCfg.broadcastd_ro_apikey, "%s", BROADCASTD_RO_APIKEY);
-		
-		sysCfg.thermostat1state=0;
-		sysCfg.thermostat1manualsetpoint=2100;
-		sysCfg.thermostat1mode=THERMOSTAT_MANUAL;
-		sysCfg.thermostat1opmode=THERMOSTAT_HEATING;
-
-		//Build default schedule for the thermostat
-		for(int dow=0; dow<7; dow++) {
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[0].start=0; //0am
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[0].end=600; //6am, hours are * 100
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[0].setpoint=1000; //10.0*C
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[0].active=1;
-			
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[1].start=600;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[1].end=900;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[1].setpoint=1800;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[1].active=1;
-			
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[2].start=900;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[2].end=1700;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[2].setpoint=1600;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[2].active=1;
-			
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[3].start=1700;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[3].end=2200;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[3].setpoint=2100;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[3].active=1;
-
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[4].start=2200;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[4].end=2400;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[4].setpoint=1500;
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[4].active=1;
-			
-			sysCfg.thermostat1schedule.weekSched[dow].daySched[5].active=0; //Terminate
-		}
-
-
-
-		sysCfg.thermostat2state=0;
-		sysCfg.thermostat2manualsetpoint=2100;
-		sysCfg.thermostat2mode=THERMOSTAT_MANUAL;
-		sysCfg.thermostat2opmode=THERMOSTAT_HEATING;
-
-		//Build default schedule for the thermostat
-		for(int dow=0; dow<7; dow++) {
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[0].start=0; //0am
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[0].end=600; //6am, hours are * 100
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[0].setpoint=1000; //10.0*C
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[0].active=1;
-			
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[1].start=600;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[1].end=900;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[1].setpoint=1800;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[1].active=1;
-			
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[2].start=900;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[2].end=1700;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[2].setpoint=1600;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[2].active=1;
-			
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[3].start=1700;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[3].end=2200;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[3].setpoint=2100;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[3].active=1;
-
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[4].start=2200;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[4].end=2400;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[4].setpoint=1500;
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[4].active=1;
-			
-			sysCfg.thermostat2schedule.weekSched[dow].daySched[5].active=0; //Terminate
-		}
-
-
-		sysCfg.thermostat3state=0;
-		sysCfg.thermostat3manualsetpoint=2100;
-		sysCfg.thermostat3mode=THERMOSTAT_MANUAL;
-		sysCfg.thermostat3opmode=THERMOSTAT_HEATING;
-
-		//Build default schedule for the thermostat
-		for(int dow=0; dow<7; dow++) {
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[0].start=0; //0am
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[0].end=600; //6am, hours are * 100
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[0].setpoint=1000; //10.0*C
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[0].active=1;
-			
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[1].start=600;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[1].end=900;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[1].setpoint=1800;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[1].active=1;
-			
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[2].start=900;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[2].end=1700;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[2].setpoint=1600;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[2].active=1;
-			
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[3].start=1700;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[3].end=2200;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[3].setpoint=2100;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[3].active=1;
-
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[4].start=2200;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[4].end=2400;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[4].setpoint=1500;
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[4].active=1;
-			
-			sysCfg.thermostat3schedule.weekSched[dow].daySched[5].active=0; //Terminate
-		}
-
 		os_printf(" default configurations\r\n");
 
 		CFG_Save();

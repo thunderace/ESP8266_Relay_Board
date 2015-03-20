@@ -15,7 +15,7 @@
 #include "osapi.h"
 #include "gpio.h"
 #include <stdlib.h>
-#include "dht22.h"
+#include "dht.h"
 
 #define DS18B20_PIN 2
 

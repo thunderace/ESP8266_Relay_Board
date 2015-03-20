@@ -8,22 +8,36 @@
 #
 # Output directors to store intermediate compiled files
 # relative to the project directory
-include ../makedefs
+#include ../makedefs
+
+#ESPRESSIF_ROOT = {PWD}/../Espressif
+ESPRESSIF_ROOT = /media/data/home/thunder/repo.git/ESP8266/Espressif
+
+# Base directory for the compiler
+XTENSA_TOOLS_ROOT ?= ${ESPRESSIF_ROOT}/crosstool-NG/builds/xtensa-lx106-elf/bin
+XTENSA_LIBS_ROOT ?= ${ESPRESSIF_ROOT}/crosstool-NG/builds/xtensa-lx106-elf/lib/gcc/xtensa-lx106-elf/4.8.2/
+
+# base directory of the ESP8266 SDK package, absolute
+SDK_BASE  ?= ${ESPRESSIF_ROOT}/ESP8266_SDK
+
+#Esptool.py path and port
+ESPTOOL		?= esptool
+#ESPTOOL		?= ${ESPRESSIF_ROOT}/esptool-py/esptool.py
+ESPPORT		?= /dev/ttyUSB0
+
+EXTRA_INCDIR    = include ${SDK_BASE}/include
+
+FW_TOOL		?= /usr/bin/esptool
 
 
 BUILD_BASE	= build
 FW_BASE		= firmware
-
-# Base directory for the compiler
-#XTENSA_TOOLS_ROOT ?= /opt/Espressif/crosstool-NG/builds/xtensa-lx106-elf/bin
 
 #Extra Tensilica includes from the ESS VM
 SDK_EXTRA_INCLUDES ?= $(SDK_BASE)/include
 SDK_EXTRA_LIBS ?= ${XTENSA_LIBS_ROOT}
 
 #Esptool.py path and port
-ESPTOOL		?= esptool
-ESPPORT		?= /dev/ttyUSB0
 #ESPDELAY indicates seconds to wait between flashing the two binary images
 ESPDELAY	?= 3
 ESPBAUD		?= 115200
@@ -153,7 +167,7 @@ else
 endif
 
 	if [ $$(stat -c '%s' webpages.espfs) -gt $$(( 0x2E000 )) ]; then echo "webpages.espfs too big!"; false; fi
-	$(ESPTOOL) -cp $(ESPPORT) -cb $(ESPBAUD) -ca 0x12000 -cf webpages.espfs -v
+#	$(ESPTOOL) -cp $(ESPPORT) -cb $(ESPBAUD) -ca 0x12000 -cf webpages.espfs -v
 	
 checkdirs: $(BUILD_DIR) $(FW_BASE)
 

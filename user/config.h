@@ -33,27 +33,6 @@
 #include "os_type.h"
 #include "user_config.h"
 
-#define THERMOSTAT_MANUAL 0
-#define THERMOSTAT_AUTO 1
-
-#define THERMOSTAT_HEATING 0
-#define THERMOSTAT_COOLING 1
-
-typedef struct {
- uint16_t start;
- uint16_t end;
- uint16_t setpoint;  // Degrees C in * 100 i.e. 2350=23.5*C
- uint16_t active; 	 // pad to 4 byte boundary
- } dayScheduleElement;
- 
-typedef struct {
-dayScheduleElement daySched[8]; // Max 8 schedules per day
-}  daySchedule;
- 
-typedef struct {
-daySchedule weekSched[7]; // 7 days per week
-}  weekSchedule;
-
 
 typedef struct{
 	
@@ -77,13 +56,6 @@ uint32_t httpd_auth;
 uint8_t httpd_user[16];
 uint8_t httpd_pass[16];
 
-uint32_t broadcastd_enable;
-uint32_t broadcastd_port;
-uint8_t broadcastd_host[32];
-uint8_t broadcastd_url[256];
-uint32_t broadcastd_thingspeak_channel;
-uint8_t broadcastd_ro_apikey[32];
-
 uint32_t ntp_enable;
 int32_t ntp_tz;
 
@@ -95,14 +67,18 @@ uint8_t mqtt_devid[32];
 uint8_t mqtt_user[32];
 uint8_t mqtt_pass[64];
 uint32_t mqtt_use_ssl;
-uint8_t mqtt_relay_subs_topic[64];
+uint8_t mqtt_relay_command_topic[64];
 uint8_t mqtt_dht22_temp_pub_topic[64];
 uint8_t mqtt_dht22_humi_pub_topic[64];
+uint8_t mqtt_dht11_temp_pub_topic[64];
+uint8_t mqtt_dht11_humi_pub_topic[64];
 uint8_t mqtt_ds18b20_temp_pub_topic[64];
 
 uint32_t sensor_ds18b20_enable;
 uint32_t sensor_dht22_enable;
 uint32_t sensor_dht22_humi_thermostat;
+uint32_t sensor_dht11_enable;
+uint32_t sensor_dht11_humi_thermostat;
 
 uint32_t relay_latching_enable;
 uint32_t relay_1_state;
@@ -112,24 +88,6 @@ uint8_t relay1name[16];
 uint8_t relay2name[16];
 uint8_t relay3name[16];
 	
-uint32_t thermostat1state;
-uint32_t thermostat1manualsetpoint;
-uint32_t thermostat1mode;
-uint32_t thermostat1opmode;
-weekSchedule thermostat1schedule;
-
-uint32_t thermostat2state;
-uint32_t thermostat2manualsetpoint;
-uint32_t thermostat2mode;
-uint32_t thermostat2opmode;
-weekSchedule thermostat2schedule;
-
-uint32_t thermostat3state;
-uint32_t thermostat3manualsetpoint;
-uint32_t thermostat3mode;
-uint32_t thermostat3opmode;
-weekSchedule thermostat3schedule;
-
 	
 } SYSCFG;
 
@@ -141,8 +99,6 @@ typedef struct {
 void CFG_Save();
 void CFG_Load();
 
- 
- 
 extern SYSCFG sysCfg;
 
 #endif /* USER_CONFIG_H_ */

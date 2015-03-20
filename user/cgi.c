@@ -21,7 +21,7 @@ Some random cgi routines.
 #include "io.h"
 #include <ip_addr.h>
 #include "espmissingincludes.h"
-#include "dht22.h"
+#include "dht.h"
 #include "ds18b20.h"
 #include "sntp.h"
 #include "time_utils.h"
@@ -60,7 +60,6 @@ int ICACHE_FLASH_ATTR cgiGPIO(HttpdConnData *connData) {
 	}
 	
 	if(gotcmd==1) {
-
 		if( sysCfg.relay_latching_enable) {		
 			sysCfg.relay_1_state=currGPIO12State;					
 			sysCfg.relay_2_state=currGPIO13State;
@@ -71,7 +70,6 @@ int ICACHE_FLASH_ATTR cgiGPIO(HttpdConnData *connData) {
 		httpdRedirect(connData, "relay.tpl");
 		return HTTPD_CGI_DONE;
 	} else { //with no parameters returns JSON with relay state
-
 		httpdStartResponse(connData, 200);
 		httpdHeader(connData, "Content-Type", "text/json");
 		httpdEndHeaders(connData);
@@ -90,7 +88,6 @@ void ICACHE_FLASH_ATTR tplGPIO(HttpdConnData *connData, char *token, void **arg)
 	if (token==NULL) return;
 
 	os_strcpy(buff, "Unknown");
-
 
 	if (os_strcmp(token, "relay1name")==0) {
 			os_strcpy(buff, (char *)sysCfg.relay1name);
@@ -114,32 +111,31 @@ void ICACHE_FLASH_ATTR tplGPIO(HttpdConnData *connData, char *token, void **arg)
 	os_printf("Relay 1 is now ");
 	os_printf(buff);
 	os_printf("\n ");
-
 	}
-	if (os_strcmp(token, "relay2")==0) {
+
+  if (os_strcmp(token, "relay2")==0) {
 		if (currGPIO13State) {
 			os_strcpy(buff, "on");
 		} else {
 			os_strcpy(buff, "off");
 		}
-	os_printf("Relay 2 is now ");
-	os_printf(buff);
-	os_printf("\n ");
-
-
+	  os_printf("Relay 2 is now ");
+	  os_printf(buff);
+	  os_printf("\n ");
 	}
+  
 	if (os_strcmp(token, "relay3")==0) {
 		if (currGPIO15State) {
 			os_strcpy(buff, "on");
 		} else {
 			os_strcpy(buff, "off");
 		}
-	os_printf("Relay 3 is now ");
-	os_printf(buff);
-	os_printf("\n ");
-
+	  os_printf("Relay 3 is now ");
+	  os_printf(buff);
+	  os_printf("\n ");
 	}
-	httpdSend(connData, buff, -1);
+
+  httpdSend(connData, buff, -1);
 }
 
 static long hitCounter=0;
@@ -147,7 +143,9 @@ static long hitCounter=0;
 //Template code for the counter on the index page.
 void ICACHE_FLASH_ATTR tplCounter(HttpdConnData *connData, char *token, void **arg) {
 	char buff[128];
-	if (token==NULL) return;
+	if (token==NULL) {
+    return;
+	}
 
 	if (os_strcmp(token, "counter")==0) {
 		hitCounter++;
@@ -156,11 +154,11 @@ void ICACHE_FLASH_ATTR tplCounter(HttpdConnData *connData, char *token, void **a
 
 	if (os_strcmp(token, "freeheap")==0) {
 		os_sprintf(buff,"Free heap size:%d\n",system_get_free_heap_size());
-  	}
+  }
 
 	if (os_strcmp(token, "fwver")==0) {
 		os_sprintf(buff,"%s",FWVER);
-  	}
+  }
 
 	httpdSend(connData, buff, -1);
 }
@@ -185,27 +183,29 @@ int ICACHE_FLASH_ATTR cgiReadFlash(HttpdConnData *connData) {
 	//Send 1K of flash per call. We will get called again if we haven't sent 512K yet.
 	espconn_sent(connData->conn, (uint8 *)(*pos), 1024);
 	*pos+=1024;
-	if (*pos>=0x40200000+(512*1024)) return HTTPD_CGI_DONE; else return HTTPD_CGI_MORE;
+	if (*pos>=0x40200000+(512*1024)) {
+    return HTTPD_CGI_DONE; 
+  } else {
+    return HTTPD_CGI_MORE;
+  }
 }
 
-
-//Template code for the DHT 22 page.
+//Template code for the DHT 11/22 page.
 void ICACHE_FLASH_ATTR tplDHT(HttpdConnData *connData, char *token, void **arg) {
 	char buff[128];
-	if (token==NULL) return;
+	if (token==NULL) {
+    return;
+	}
 	
 	os_strcpy(buff, "Unknown");
 	if (os_strcmp(token, "temperature")==0) {
-			dht_temp_str(buff);
+	  dht_temp_str(buff);
 	}
 	if (os_strcmp(token, "humidity")==0) {
-			dht_humi_str(buff);
+	  dht_humi_str(buff);
 	}	
-	
 	httpdSend(connData, buff, -1);
 }
-
-
 
 int ICACHE_FLASH_ATTR cgiDHT22(HttpdConnData *connData) {
 	char buff[256];
@@ -225,7 +225,6 @@ int ICACHE_FLASH_ATTR cgiDHT22(HttpdConnData *connData) {
 	return HTTPD_CGI_DONE;
 }
 
-
 //Template code for the DS18b20 page.
 void ICACHE_FLASH_ATTR tplDS18b20 (HttpdConnData *connData, char *token, void **arg) {
 	char buff[384];
@@ -233,50 +232,44 @@ void ICACHE_FLASH_ATTR tplDS18b20 (HttpdConnData *connData, char *token, void **
 
 	os_strcpy(buff, "Unknown");
 
-
 	if (os_strcmp(token, "numds")==0) {	
 		os_sprintf( buff,"%d", numds);
 	}
 
-
 	if (os_strcmp(token, "temperatures")==0) {	
-	
 		int Treading, SignBit, Whole, Fract;
-		
 		os_strcpy(buff, "");
-	
-		for(int i=0; i<numds; i++) {
-		
-			if(dsreading[i].success) {
-			Treading = dsreading[i].temperature;
-			   
-			SignBit = Treading & 0x8000;  // test most sig bit
-			if (SignBit) // negative
-				Treading = (Treading ^ 0xffff) + 1; // 2's comp
-	
-			Whole = Treading >> 4;  // separate off the whole and fractional portions
-			Fract = (Treading & 0xf) * 100 / 16;
+		for (int i=0; i<numds; i++) {
+			if (dsreading[i].success) {
+			  Treading = dsreading[i].temperature;
+			  SignBit = Treading & 0x8000;  // test most sig bit
+			  if (SignBit) { // negative
+				  Treading = (Treading ^ 0xffff) + 1; // 2's comp
+			  }
+				Whole = Treading >> 4;  // separate off the whole and fractional portions
+			  Fract = (Treading & 0xf) * 100 / 16;
 
-			if (SignBit) // negative
-				Whole*=-1;
+			  if (SignBit) { // negative
+				  Whole*=-1;
+			  }
 		
-			os_sprintf( buff+strlen(buff) ,"Sensor %d (%02x %02x %02x %02x %02x %02x %02x %02x) reading is %d.%d°C<br />", i+1, addr[i][0], addr[i][1], addr[i][2], addr[i][3], addr[i][4], addr[i][5], addr[i][6], addr[i][7],
-				Whole, Fract < 10 ? 0 : Fract);
+			  os_sprintf( buff+strlen(buff) ,"Sensor %d (%02x %02x %02x %02x %02x %02x %02x %02x) reading is %d.%dÂ°C<br />", 
+                                        i+1, addr[i][0], addr[i][1], addr[i][2], addr[i][3], addr[i][4], 
+                                        addr[i][5], addr[i][6], addr[i][7],
+				                                Whole, Fract < 10 ? 0 : Fract);
 			} else {
-			os_sprintf( buff+strlen(buff) ,"Sensor %d (%02x %02x %02x %02x %02x %02x %02x %02x) reading is invalid<br />", i+1, addr[i][0], addr[i][1], addr[i][2], addr[i][3], addr[i][4], addr[i][5], addr[i][6], addr[i][7]);
+			  os_sprintf( buff+strlen(buff) ,"Sensor %d (%02x %02x %02x %02x %02x %02x %02x %02x) reading is invalid<br />", 
+                                        i+1, addr[i][0], addr[i][1], addr[i][2], addr[i][3], addr[i][4], 
+                                        addr[i][5], addr[i][6], addr[i][7]);
 			}
 		}
-
 	}
 	
 	httpdSend(connData, buff, -1);
-
 }
 
-
-
 int ICACHE_FLASH_ATTR cgiDS18b20(HttpdConnData *connData) {
-	char buff[256];
+  char buff[256];
 	char tmp[32];
 	httpdStartResponse(connData, 200);
 	httpdHeader(connData, "Content-Type", "text/json");
@@ -289,12 +282,9 @@ int ICACHE_FLASH_ATTR cgiDS18b20(HttpdConnData *connData) {
 	return HTTPD_CGI_DONE;
 }
 
-
-
 int ICACHE_FLASH_ATTR cgiState(HttpdConnData *connData) {
 	char buff[512];
 	char tmp[32];
-
 	char temp[32];
 	char humi[32];
 
@@ -313,10 +303,7 @@ int ICACHE_FLASH_ATTR cgiState(HttpdConnData *connData) {
 	return HTTPD_CGI_DONE;
 }
 
-
-
 int ICACHE_FLASH_ATTR cgiUI(HttpdConnData *connData) {
-
 	char buff[128];
 
 	httpdStartResponse(connData, 200);
@@ -330,82 +317,91 @@ int ICACHE_FLASH_ATTR cgiUI(HttpdConnData *connData) {
 }
 
 void ICACHE_FLASH_ATTR tplUI(HttpdConnData *connData, char *token, void **arg) {
-
 	char buff[128];
-	if (token==NULL) return;
+	if (token==NULL) {
+    return;
+	}
 	
 	os_strcpy(buff, "Unknown");
 
 	if (os_strcmp(token, "relay1name")==0) {
-			os_strcpy(buff, (char *)sysCfg.relay1name);
+	  os_strcpy(buff, (char *)sysCfg.relay1name);
 	}
 	
 	if (os_strcmp(token, "relay2name")==0) {
-			os_strcpy(buff, (char *)sysCfg.relay2name);
+		os_strcpy(buff, (char *)sysCfg.relay2name);
 	}
 
 	if (os_strcmp(token, "relay3name")==0) {
-			os_strcpy(buff, (char *)sysCfg.relay3name);
+		os_strcpy(buff, (char *)sysCfg.relay3name);
 	}
 	
 	httpdSend(connData, buff, -1);
-
-
 }
 
 void ICACHE_FLASH_ATTR tplMQTT(HttpdConnData *connData, char *token, void **arg) {
-
 	char buff[128];
-	if (token==NULL) return;
+
+  if (token==NULL) {
+    return;
+  }
 	
 	os_strcpy(buff, "Unknown");
 
 	if (os_strcmp(token, "mqtt-enable")==0) {
-			os_sprintf(buff, "%d", (int)sysCfg.mqtt_enable);
+	  os_sprintf(buff, "%d", (int)sysCfg.mqtt_enable);
 	}
 	
 	if (os_strcmp(token, "mqtt-use-ssl")==0) {
-			os_sprintf(buff,"%d", (int)sysCfg.mqtt_use_ssl);
+		os_sprintf(buff,"%d", (int)sysCfg.mqtt_use_ssl);
 	}
 
 	if (os_strcmp(token, "mqtt-host")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_host);
+		os_strcpy(buff, (char *)sysCfg.mqtt_host);
 	}
 
 	if (os_strcmp(token, "mqtt-port")==0) {
-			os_sprintf(buff, "%d", (int)sysCfg.mqtt_port);
+		os_sprintf(buff, "%d", (int)sysCfg.mqtt_port);
 	}
 
 	if (os_strcmp(token, "mqtt-keepalive")==0) {
-			os_sprintf(buff, "%d", (int)sysCfg.mqtt_keepalive);
+		os_sprintf(buff, "%d", (int)sysCfg.mqtt_keepalive);
 	}
 
 	if (os_strcmp(token, "mqtt-devid")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_devid);
+		os_strcpy(buff, (char *)sysCfg.mqtt_devid);
 	}
 
 	if (os_strcmp(token, "mqtt-user")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_user);
+		os_strcpy(buff, (char *)sysCfg.mqtt_user);
 	}
 
 	if (os_strcmp(token, "mqtt-pass")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_pass);
+		os_strcpy(buff, (char *)sysCfg.mqtt_pass);
 	}
 
 	if (os_strcmp(token, "mqtt-relay-subs-topic")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_relay_subs_topic);
+		os_strcpy(buff, (char *)sysCfg.mqtt_relay_command_topic);
 	}
 
 	if (os_strcmp(token, "mqtt-dht22-temp-pub-topic")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_dht22_temp_pub_topic);
+		os_strcpy(buff, (char *)sysCfg.mqtt_dht22_temp_pub_topic);
 	}
 
 	if (os_strcmp(token, "mqtt-dht22-humi-pub-topic")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_dht22_humi_pub_topic);
+		os_strcpy(buff, (char *)sysCfg.mqtt_dht22_humi_pub_topic);
 	}
 	
-	if (os_strcmp(token, "mqtt-ds18b20-temp-pub-topic")==0) {
-			os_strcpy(buff, (char *)sysCfg.mqtt_ds18b20_temp_pub_topic);
+  if (os_strcmp(token, "mqtt-dht11-temp-pub-topic")==0) {
+		os_strcpy(buff, (char *)sysCfg.mqtt_dht11_temp_pub_topic);
+	}
+
+	if (os_strcmp(token, "mqtt-dht11-humi-pub-topic")==0) {
+		os_strcpy(buff, (char *)sysCfg.mqtt_dht11_humi_pub_topic);
+	}
+
+  if (os_strcmp(token, "mqtt-ds18b20-temp-pub-topic")==0) {
+		os_strcpy(buff, (char *)sysCfg.mqtt_ds18b20_temp_pub_topic);
 	}
 	
 	httpdSend(connData, buff, -1);
@@ -442,76 +438,79 @@ int ICACHE_FLASH_ATTR cgiMQTT(HttpdConnData *connData) {
 		sysCfg.mqtt_keepalive=atoi(buff);
 	}
 	
-		len=httpdFindArg(connData->postBuff, "mqtt-devid", buff, sizeof(buff));
+	len=httpdFindArg(connData->postBuff, "mqtt-devid", buff, sizeof(buff));
 	if (len>0) {
 		os_sprintf((char *)sysCfg.mqtt_devid,buff);
 	}
 	
-		len=httpdFindArg(connData->postBuff, "mqtt-user", buff, sizeof(buff));
+	len=httpdFindArg(connData->postBuff, "mqtt-user", buff, sizeof(buff));
 	if (len>0) {
 		os_sprintf((char *)sysCfg.mqtt_user,buff);
 	}
 	
-		len=httpdFindArg(connData->postBuff, "mqtt-pass", buff, sizeof(buff));
+	len=httpdFindArg(connData->postBuff, "mqtt-pass", buff, sizeof(buff));
 	if (len>0) {
 		os_sprintf((char *)sysCfg.mqtt_pass,buff);
 	}
 	
-		len=httpdFindArg(connData->postBuff, "mqtt-relay-subs-topic", buff, sizeof(buff));
+	len=httpdFindArg(connData->postBuff, "mqtt-relay-subs-topic", buff, sizeof(buff));
 	if (len>0) {
-		os_sprintf((char *)sysCfg.mqtt_relay_subs_topic,buff);
+		os_sprintf((char *)sysCfg.mqtt_relay_command_topic,buff);
 	}
 	
-		len=httpdFindArg(connData->postBuff, "mqtt-dht22-temp-pub-topic", buff, sizeof(buff));
+	len=httpdFindArg(connData->postBuff, "mqtt-dht22-temp-pub-topic", buff, sizeof(buff));
 	if (len>0) {
 		os_sprintf((char *)sysCfg.mqtt_dht22_temp_pub_topic,buff);
 	}
 	
-		len=httpdFindArg(connData->postBuff, "mqtt-dht22-humi-pub-topic", buff, sizeof(buff));
+	len=httpdFindArg(connData->postBuff, "mqtt-dht22-humi-pub-topic", buff, sizeof(buff));
 	if (len>0) {
 		os_sprintf((char *)sysCfg.mqtt_dht22_humi_pub_topic,buff);
 	}
 
-		len=httpdFindArg(connData->postBuff, "mqtt-ds18b20-temp-pub-topic", buff, sizeof(buff));
+  len=httpdFindArg(connData->postBuff, "mqtt-dht11-temp-pub-topic", buff, sizeof(buff));
+	if (len>0) {
+		os_sprintf((char *)sysCfg.mqtt_dht11_temp_pub_topic,buff);
+	}
+	
+	len=httpdFindArg(connData->postBuff, "mqtt-dht11-humi-pub-topic", buff, sizeof(buff));
+	if (len>0) {
+		os_sprintf((char *)sysCfg.mqtt_dht11_humi_pub_topic,buff);
+	}
+
+  len=httpdFindArg(connData->postBuff, "mqtt-ds18b20-temp-pub-topic", buff, sizeof(buff));
 	if (len>0) {
 		os_sprintf((char *)sysCfg.mqtt_ds18b20_temp_pub_topic,buff);
 	}
 
 	CFG_Save();
-		
 
-	httpdRedirect(connData, "/");
+  httpdRedirect(connData, "/");
 	return HTTPD_CGI_DONE;
 }
 
-
-
-
-
-
-
-
 void ICACHE_FLASH_ATTR tplHTTPD(HttpdConnData *connData, char *token, void **arg) {
-
 	char buff[128];
-	if (token==NULL) return;
+	if (token == NULL) {
+    return;
+	}
 	
 	os_strcpy(buff, "Unknown");
 
 	if (os_strcmp(token, "httpd-auth")==0) {
-			os_sprintf(buff,"%d", (int)sysCfg.httpd_auth);
+		os_sprintf(buff,"%d", (int)sysCfg.httpd_auth);
 	}
 	
 	if (os_strcmp(token, "httpd-port")==0) {
-			os_sprintf(buff,"%d", (int)sysCfg.httpd_port);
+		os_sprintf(buff,"%d", (int)sysCfg.httpd_port);
 	}
 
 	if (os_strcmp(token, "httpd-user")==0) {
-			os_strcpy(buff, (char *)sysCfg.httpd_user);
+		os_strcpy(buff, (char *)sysCfg.httpd_user);
 	}
 
 	if (os_strcmp(token, "httpd-pass")==0) {
-			os_strcpy(buff, (char *)sysCfg.httpd_pass);
+		os_strcpy(buff, (char *)sysCfg.httpd_pass);
 	}
 
 	httpdSend(connData, buff, -1);
@@ -525,7 +524,6 @@ int ICACHE_FLASH_ATTR cgiHTTPD(HttpdConnData *connData) {
 		//Connection aborted. Clean up.
 		return HTTPD_CGI_DONE;
 	}
-
 
 	len=httpdFindArg(connData->postBuff, "httpd-auth", buff, sizeof(buff));
 	sysCfg.httpd_auth = (len > 0) ? 1:0;
@@ -544,7 +542,6 @@ int ICACHE_FLASH_ATTR cgiHTTPD(HttpdConnData *connData) {
 	if (len>0) {
 		os_strcpy((char *)sysCfg.httpd_pass,buff);
 	}
-	
 
 	CFG_Save();
 
@@ -554,25 +551,24 @@ int ICACHE_FLASH_ATTR cgiHTTPD(HttpdConnData *connData) {
 
 
 void ICACHE_FLASH_ATTR tplNTP(HttpdConnData *connData, char *token, void **arg) {
-
 	char buff[128];
-	if (token==NULL) return;
+	if (token==NULL) {
+    return;
+	}
 	
 	os_strcpy(buff, "Unknown");
 
 	if (os_strcmp(token, "ntp-enable")==0) {
-			os_sprintf(buff, "%d", (int)sysCfg.ntp_enable);
+		os_sprintf(buff, "%d", (int)sysCfg.ntp_enable);
 	}
 	
 	if (os_strcmp(token, "ntp-tz")==0) {
-			os_sprintf(buff, "%d", (int)sysCfg.ntp_tz);
+		os_sprintf(buff, "%d", (int)sysCfg.ntp_tz);
 	}
 
 	if (os_strcmp(token, "NTP")==0) {
 		os_sprintf(buff,"Time: %s GMT%s%02d\n",epoch_to_str(sntp_time+(sntp_tz*3600)),sntp_tz > 0 ? "+" : "",sntp_tz);  
 	}
-
-
 	httpdSend(connData, buff, -1);
 }
 
@@ -584,7 +580,6 @@ int ICACHE_FLASH_ATTR cgiNTP(HttpdConnData *connData) {
 		//Connection aborted. Clean up.
 		return HTTPD_CGI_DONE;
 	}
-	
 	len=httpdFindArg(connData->postBuff, "ntp-enable", buff, sizeof(buff));
 	sysCfg.ntp_enable = len > 0 ? 1:0;
 	
@@ -592,10 +587,8 @@ int ICACHE_FLASH_ATTR cgiNTP(HttpdConnData *connData) {
 	if (len>0) {
 		sysCfg.ntp_tz=atoi(buff);		
 	}	
-	
 	CFG_Save();
 	
-
 	httpdRedirect(connData, "/");
 	return HTTPD_CGI_DONE;
 }
@@ -603,11 +596,9 @@ int ICACHE_FLASH_ATTR cgiNTP(HttpdConnData *connData) {
 void ICACHE_FLASH_ATTR restartTimerCb(void *arg) {
 	os_printf("Restarting..\n");
 	system_restart();
-		
 }
 
-int ICACHE_FLASH_ATTR cgiReset(HttpdConnData *connData)
-{
+int ICACHE_FLASH_ATTR cgiReset(HttpdConnData *connData) {
 	static ETSTimer restartTimer;
 	//Schedule restart
 	os_timer_disarm(&restartTimer);
@@ -615,16 +606,11 @@ int ICACHE_FLASH_ATTR cgiReset(HttpdConnData *connData)
 	os_timer_arm(&restartTimer, 2000, 0);
 	httpdRedirect(connData, "restarting.html");
 	return HTTPD_CGI_DONE;
-		
 }
 
-
-
 int ICACHE_FLASH_ATTR cgiRLYSettings(HttpdConnData *connData) {
-
 	int len;
 	char buff[128];
-
 	
 	if (connData->conn==NULL) {
 		//Connection aborted. Clean up.
@@ -633,7 +619,6 @@ int ICACHE_FLASH_ATTR cgiRLYSettings(HttpdConnData *connData) {
 	
 	len=httpdFindArg(connData->postBuff, "relay-latching-enable", buff, sizeof(buff));
 	sysCfg.relay_latching_enable = (len > 0) ? 1:0;
-		
 
 	len=httpdFindArg(connData->postBuff, "relay1name", buff, sizeof(buff));
 	if (len>0) {
@@ -656,43 +641,35 @@ int ICACHE_FLASH_ATTR cgiRLYSettings(HttpdConnData *connData) {
 }
 
 void ICACHE_FLASH_ATTR tplRLYSettings(HttpdConnData *connData, char *token, void **arg) {
-
 	char buff[128];
-	if (token==NULL) return;
+	if (token==NULL) {
+    return;
+	}
 	
 	os_strcpy(buff, "Unknown");
 
 	if (os_strcmp(token, "relay-latching-enable")==0) {
-			os_strcpy(buff, sysCfg.relay_latching_enable == 1 ? "checked" : "" );
+		os_strcpy(buff, sysCfg.relay_latching_enable == 1 ? "checked" : "" );
 	}
 
-
-	if (os_strcmp(token, "relay1name")==0) {
-			os_strcpy(buff, (char *)sysCfg.relay1name);
+  if (os_strcmp(token, "relay1name")==0) {
+		os_strcpy(buff, (char *)sysCfg.relay1name);
 	}
 	
 	if (os_strcmp(token, "relay2name")==0) {
-			os_strcpy(buff, (char *)sysCfg.relay2name);
+		os_strcpy(buff, (char *)sysCfg.relay2name);
 	}
 
 	if (os_strcmp(token, "relay3name")==0) {
-			os_strcpy(buff, (char *)sysCfg.relay3name);
+		os_strcpy(buff, (char *)sysCfg.relay3name);
 	}
 	
 	httpdSend(connData, buff, -1);
-
-
 }
 
-
-
-
-
 int ICACHE_FLASH_ATTR cgiSensorSettings(HttpdConnData *connData) {
-
 	int len;
 	char buff[128];
-
 	
 	if (connData->conn==NULL) {
 		//Connection aborted. Clean up.
@@ -714,124 +691,25 @@ int ICACHE_FLASH_ATTR cgiSensorSettings(HttpdConnData *connData) {
 }
 
 void ICACHE_FLASH_ATTR tplSensorSettings(HttpdConnData *connData, char *token, void **arg) {
-
 	char buff[128];
-	if (token==NULL) return;
+	if (token==NULL) {
+    return;
+	}
 	
 	os_strcpy(buff, "Unknown");
 
 	if (os_strcmp(token, "sensor-ds18b20-enable")==0) {
-			os_strcpy(buff, sysCfg.sensor_ds18b20_enable == 1 ? "checked" : "" );
+	  os_strcpy(buff, sysCfg.sensor_ds18b20_enable == 1 ? "checked" : "" );
 	}
 
 	if (os_strcmp(token, "sensor-dht22-enable")==0) {
-			os_strcpy(buff, sysCfg.sensor_dht22_enable == 1 ? "checked" : "" );
+		os_strcpy(buff, sysCfg.sensor_dht22_enable == 1 ? "checked" : "" );
 	}
 
 	if (os_strcmp(token, "sensor-dht22-humi-thermostat")==0) {
-			os_strcpy(buff, sysCfg.sensor_dht22_humi_thermostat == 1 ? "checked" : "" );
-	}
-
-	
-	httpdSend(connData, buff, -1);
-
-
-}
-
-
-
-
-
-
-
-void ICACHE_FLASH_ATTR tplBroadcastD(HttpdConnData *connData, char *token, void **arg) {
-
-	char buff[255];
-	if (token==NULL) return;
-	
-	os_strcpy(buff, "Unknown");
-
-	if (os_strcmp(token, "broadcastd-enable")==0) {
-			os_sprintf(buff,"%d", (int)sysCfg.broadcastd_enable);
+		os_strcpy(buff, sysCfg.sensor_dht22_humi_thermostat == 1 ? "checked" : "" );
 	}
 	
-	if (os_strcmp(token, "broadcastd-port")==0) {
-			os_sprintf(buff,"%d", (int)sysCfg.broadcastd_port);
-	}
-
-	if (os_strcmp(token, "broadcastd-host")==0) {
-			os_strcpy(buff, (char *)sysCfg.broadcastd_host);
-	}
-
-	if (os_strcmp(token, "broadcastd-URL")==0) {
-			os_strcpy(buff, (char *)sysCfg.broadcastd_url);
-	}
-
-	if (os_strcmp(token, "broadcastd-thingspeak-channel")==0) {
-			os_sprintf(buff,"%d", (int)sysCfg.broadcastd_thingspeak_channel);
-	}
-
-	if (os_strcmp(token, "broadcastd-ro-apikey")==0) {
-			os_strcpy(buff, (char *)sysCfg.broadcastd_ro_apikey);
-	}
-
 	httpdSend(connData, buff, -1);
 }
 
-int ICACHE_FLASH_ATTR cgiBroadcastD(HttpdConnData *connData) {
-	char buff[255];
-	int len;
-	
-	if (connData->conn==NULL) {
-		//Connection aborted. Clean up.
-		return HTTPD_CGI_DONE;
-	}
-
-	len=httpdFindArg(connData->getArgs, "js", buff, sizeof(buff));
-	if (len>0) {
-
-		httpdStartResponse(connData, 200);
-		httpdHeader(connData, "Content-Type", "text/javascript");
-		httpdEndHeaders(connData);
-
-		len=os_sprintf(buff, "var channel=%d;\nvar ro_apikey=\"%s\";\n",(int)sysCfg.broadcastd_thingspeak_channel,(char *)sysCfg.broadcastd_ro_apikey );
-		httpdSend(connData, buff, -1);
-		return HTTPD_CGI_DONE;	
-
-
-	}
-
-
-	len=httpdFindArg(connData->postBuff, "broadcastd-enable", buff, sizeof(buff));
-	sysCfg.broadcastd_enable = (len > 0) ? 1:0;
-		
-	len=httpdFindArg(connData->postBuff, "broadcastd-port", buff, sizeof(buff));
-	if (len>0) {
-		sysCfg.broadcastd_port=atoi(buff);
-	}
-
-	len=httpdFindArg(connData->postBuff, "broadcastd-host", buff, sizeof(buff));
-	if (len>0) {
-		os_strcpy((char *)sysCfg.broadcastd_host,buff);
-	}
-
-	len=httpdFindArg(connData->postBuff, "broadcastd-URL", buff, sizeof(buff));
-	if (len>0) {
-		os_strcpy((char *)sysCfg.broadcastd_url,buff);
-	}
-
-	len=httpdFindArg(connData->postBuff, "broadcastd-thingspeak-channel", buff, sizeof(buff));
-	if (len>0) {
-		sysCfg.broadcastd_thingspeak_channel=atoi(buff);
-	}
-	
-	len=httpdFindArg(connData->postBuff, "broadcastd-ro_apikey", buff, sizeof(buff));
-	if (len>0) {
-		os_strcpy((char *)sysCfg.broadcastd_ro_apikey,buff);
-	}
-
-	CFG_Save();
-
-	httpdRedirect(connData, "/");
-	return HTTPD_CGI_DONE;
-}
